@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>FitBattle 🏆</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Sarabun:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#08080f;--s1:#0f0f1c;--s2:#161626;--s3:#1e1e30;
+  --accent:#c8ff3e;--accent-dim:rgba(200,255,62,0.1);
+  --red:#ff4757;--orange:#ffa94d;--blue:#74b9ff;--green:#4ade80;
+  --text:#f0f0f5;--muted:#5a5a7a;--border:rgba(255,255,255,0.07);
+  --r:14px;--r2:20px;
+}
+html{height:100%}
+body{font-family:'Sarabun',sans-serif;background:var(--bg);color:var(--text);min-height:100%;max-width:480px;margin:0 auto;overflow-x:hidden;position:relative}
+
+/* SCREENS */
+.screen{display:none;flex-direction:column;min-height:100vh}
+.screen.active{display:flex}
+
+/* LOADING */
+#s-loading{align-items:center;justify-content:center;gap:12px;background:radial-gradient(ellipse at 50% 100%,rgba(200,255,62,0.07) 0%,transparent 60%)}
+.logo{font-family:'Bebas Neue',sans-serif;font-size:54px;letter-spacing:4px;color:var(--accent)}
+.logo em{color:var(--text);font-style:normal}
+.loader{display:flex;gap:6px}
+.ldot{width:8px;height:8px;background:var(--accent);border-radius:50%;animation:ld .8s ease-in-out infinite}
+.ldot:nth-child(2){animation-delay:.15s}.ldot:nth-child(3){animation-delay:.3s}
+@keyframes ld{0%,80%,100%{transform:scale(.6);opacity:.4}40%{transform:scale(1);opacity:1}}
+
+/* SETUP */
+#s-setup{background:radial-gradient(ellipse at 50% 0%,rgba(200,255,62,0.05) 0%,transparent 50%);padding-bottom:0;min-height:100vh}
+.setup-wrap{flex:1;display:flex;flex-direction:column;padding:44px 24px 28px}
+.setup-logo{font-family:'Bebas Neue',sans-serif;font-size:32px;color:var(--accent);letter-spacing:2px}
+.step-counter{font-size:12px;color:var(--muted);margin-top:2px;margin-bottom:28px}
+.progress-dots{display:flex;gap:6px;margin-bottom:36px}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--s3);transition:all .35s cubic-bezier(.4,0,.2,1)}
+.dot.active{background:var(--accent);width:28px;border-radius:4px}
+.setup-title{font-size:26px;font-weight:800;line-height:1.25;margin-bottom:6px}
+.setup-sub{font-size:14px;color:var(--muted);margin-bottom:28px}
+.setup-input{width:100%;padding:18px 20px;background:var(--s2);border:2px solid var(--border);border-radius:var(--r);color:var(--text);font-family:'Sarabun',sans-serif;font-size:18px;font-weight:700;outline:none;transition:border-color .2s}
+.setup-input:focus{border-color:var(--accent)}
+.setup-input::placeholder{color:var(--muted);font-weight:400}
+.setup-hint{font-size:12px;color:var(--muted);margin-top:8px;flex:1}
+.btn-primary{width:100%;padding:18px;background:var(--accent);border:none;border-radius:var(--r);color:#060610;font-family:'Sarabun',sans-serif;font-size:16px;font-weight:800;cursor:pointer;transition:opacity .2s,transform .1s;letter-spacing:.3px}
+.btn-primary:active{transform:scale(.97);opacity:.88}
+.btn-primary:disabled{opacity:.35;cursor:not-allowed}
+
+/* MAIN */
+#s-main{padding-bottom:72px}
+
+/* HEADER */
+.app-header{padding:20px 20px 14px;background:var(--bg);position:sticky;top:0;z-index:50;border-bottom:1px solid var(--border)}
+.header-row{display:flex;align-items:flex-start;justify-content:space-between}
+.greeting-small{font-size:12px;color:var(--muted);margin-bottom:1px}
+.username-big{font-size:22px;font-weight:800;line-height:1}
+.bmi-badge{padding:6px 14px;border-radius:50px;font-size:11px;font-weight:800;border:1.5px solid;letter-spacing:.5px;transition:all .4s}
+.header-date{font-size:11px;color:var(--muted);margin-top:6px}
+
+/* TAB BUTTONS */
+.tab-nav{display:flex;gap:8px;padding:12px 16px 0;overflow-x:auto;scrollbar-width:none}
+.tab-nav::-webkit-scrollbar{display:none}
+.t-btn{padding:8px 18px;border-radius:50px;border:none;font-family:'Sarabun',sans-serif;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;transition:all .2s;background:var(--s2);color:var(--muted)}
+.t-btn.active{background:var(--accent);color:#060610}
+
+/* TAB CONTENT */
+.tab-pane{display:none;padding:14px 14px 0;flex-direction:column;gap:12px;overflow-y:auto;flex:1}
+.tab-pane.active{display:flex}
+
+/* CARDS */
+.card{background:var(--s1);border-radius:var(--r2);padding:20px;border:1px solid var(--border)}
+.card-label{font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.8px;margin-bottom:14px}
+
+/* WEIGHT CARD */
+.weight-hero{text-align:center;padding:4px 0 8px}
+.weight-num{font-family:'Bebas Neue',sans-serif;font-size:88px;line-height:1;color:var(--accent);display:inline-block}
+.weight-unit{font-size:22px;color:var(--muted);vertical-align:top;margin-top:18px;margin-left:2px}
+/* BMI Ring */
+.bmi-ring-wrap{width:110px;height:110px;position:relative;margin:10px auto 4px}
+.bmi-ring-wrap svg{transform:rotate(-90deg)}
+.bmi-center-txt{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;pointer-events:none}
+.bmi-center-val{font-family:'Bebas Neue',sans-serif;font-size:28px;line-height:1;transition:color .5s}
+.bmi-center-lbl{font-size:10px;color:var(--muted)}
+.bmi-tag{text-align:center;font-size:13px;font-weight:700;margin-bottom:4px;transition:color .4s}
+.bmi-delta{text-align:center;font-size:12px;color:var(--muted);margin-bottom:4px}
+/* Weight Input */
+.w-input-row{display:flex;gap:8px;margin-top:14px}
+.w-input{flex:1;padding:14px 16px;background:var(--s2);border:2px solid var(--border);border-radius:var(--r);color:var(--text);font-family:'Sarabun',sans-serif;font-size:18px;font-weight:700;outline:none;transition:border-color .2s;text-align:center}
+.w-input:focus{border-color:var(--accent)}
+.w-save-btn{padding:14px 18px;background:var(--accent);border:none;border-radius:var(--r);color:#060610;font-family:'Sarabun',sans-serif;font-size:13px;font-weight:800;cursor:pointer;transition:all .15s;white-space:nowrap}
+.w-save-btn:active{transform:scale(.95)}
+.w-realtime{text-align:center;font-size:12px;color:var(--muted);min-height:18px;margin-top:6px;transition:all .3s}
+
+/* STEPS CARD */
+.steps-num{font-family:'Bebas Neue',sans-serif;font-size:60px;line-height:1;color:var(--accent)}
+.steps-goal{font-size:12px;color:var(--muted);margin-top:2px;margin-bottom:12px}
+.steps-bar-bg{height:8px;background:var(--s3);border-radius:4px;overflow:hidden;margin-bottom:14px}
+.steps-bar-fill{height:100%;background:linear-gradient(90deg,var(--accent),#8dff00);border-radius:4px;transition:width .6s cubic-bezier(.4,0,.2,1)}
+.steps-btns{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.s-btn{padding:11px 8px;background:var(--s2);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-family:'Sarabun',sans-serif;font-size:13px;font-weight:700;cursor:pointer;text-align:center;transition:all .15s}
+.s-btn:active{background:var(--accent-dim);border-color:var(--accent)}
+
+/* STATS GRID */
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.stat-card{background:var(--s1);border-radius:var(--r);padding:16px;border:1px solid var(--border);display:flex;flex-direction:column;gap:6px}
+.stat-ico{font-size:22px}
+.stat-val{font-family:'Bebas Neue',sans-serif;font-size:36px;line-height:1}
+.stat-lbl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+.ctrl-row{display:flex;align-items:center;gap:8px;margin-top:2px}
+.c-btn{width:30px;height:30px;border-radius:50%;border:none;background:var(--s3);color:var(--text);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .15s;font-weight:700}
+.c-btn:active{background:var(--accent);color:#000}
+.c-val{flex:1;text-align:center;font-weight:700;font-size:13px;color:var(--muted)}
+
+/* LEADERBOARD */
+.lb-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.lb-title{font-size:18px;font-weight:800}
+.lb-refresh{padding:6px 14px;background:var(--s2);border:1px solid var(--border);border-radius:50px;color:var(--muted);font-size:12px;font-weight:600;cursor:pointer;font-family:'Sarabun',sans-serif;transition:all .2s}
+.lb-refresh:active{color:var(--accent);border-color:var(--accent)}
+.lb-sub{font-size:11px;color:var(--muted);margin-bottom:14px}
+.lb-item{display:flex;align-items:center;gap:12px;padding:14px 16px;background:var(--s1);border-radius:var(--r);border:1px solid var(--border);margin-bottom:8px;transition:border-color .3s}
+.lb-item.me{border-color:rgba(200,255,62,0.35);background:rgba(200,255,62,0.03)}
+.lb-rank{font-family:'Bebas Neue',sans-serif;font-size:24px;min-width:34px;text-align:center;color:var(--muted)}
+.lb-info{flex:1;min-width:0}
+.lb-name{font-weight:800;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lb-sub2{font-size:11px;color:var(--muted);margin-top:3px}
+.lb-right{text-align:right;flex-shrink:0}
+.lb-weight{font-family:'Bebas Neue',sans-serif;font-size:22px;line-height:1}
+.lb-wunit{font-size:11px;color:var(--muted)}
+.lb-loss{font-size:12px;font-weight:800;margin-top:2px}
+
+/* MORE TAB */
+.sum-row{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:1px solid var(--border)}
+.sum-left{display:flex;gap:10px;align-items:center}
+.sum-ico{font-size:20px;width:28px;text-align:center}
+.sum-lbl{font-size:13px;color:var(--muted)}
+.sum-right{display:flex;align-items:center;gap:8px}
+.sum-val{font-size:13px;font-weight:700}
+.sum-check{font-size:16px}
+.profile-info{font-size:14px;color:var(--muted);line-height:2}
+.danger-btn{width:100%;padding:14px;background:rgba(255,71,87,0.1);border:1px solid rgba(255,71,87,0.25);border-radius:var(--r);color:var(--red);font-family:'Sarabun',sans-serif;font-size:14px;font-weight:700;cursor:pointer;margin-top:14px;transition:all .2s}
+.danger-btn:active{background:rgba(255,71,87,0.2)}
+.tip-card{background:var(--accent-dim);border:1px solid rgba(200,255,62,0.2);border-radius:var(--r2);padding:18px}
+.tip-title{font-size:13px;font-weight:700;color:var(--accent);margin-bottom:8px}
+.tip-text{font-size:13px;line-height:1.7}
+
+/* BOTTOM NAV */
+.bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:rgba(8,8,15,0.96);backdrop-filter:blur(16px);border-top:1px solid var(--border);display:none;z-index:100;padding:6px 0 max(6px,env(safe-area-inset-bottom))}
+.bottom-nav.on{display:block}
+.nav-items{display:flex}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 4px;border:none;background:none;color:var(--muted);font-family:'Sarabun',sans-serif;font-size:10px;font-weight:600;cursor:pointer;transition:color .2s}
+.nav-item.active{color:var(--accent)}
+.nav-ico{font-size:22px;line-height:1}
+
+/* UTILS */
+.note-txt{font-size:11px;color:var(--muted);text-align:center;padding:6px 16px}
+.empty-state{text-align:center;padding:48px 20px;color:var(--muted)}
+.empty-state .e-ico{font-size:44px;margin-bottom:10px}
+.spacer{height:10px}
+.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%) translateY(-80px);background:var(--accent);color:#060610;padding:10px 24px;border-radius:50px;font-weight:800;font-size:14px;font-family:'Sarabun',sans-serif;z-index:999;transition:transform .3s cubic-bezier(.4,0,.2,1);white-space:nowrap}
+.toast.show{transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div id="s-loading" class="screen active">
+  <div class="logo">Fit<em>Battle</em> 🏆</div>
+  <div style="font-size:13px;color:var(--muted)">กำลังโหลดข้อมูล...</div>
+  <div class="loader"><div class="ldot"></div><div class="ldot"></div><div class="ldot"></div></div>
+</div>
+
+<!-- SETUP -->
+<div id="s-setup" class="screen">
+  <div class="setup-wrap">
+    <div class="setup-logo">FitBattle 🏆</div>
+    <div class="step-counter" id="step-counter">ขั้นตอนที่ 1 จาก 3</div>
+    <div class="progress-dots">
+      <div class="dot active" id="dot-0"></div>
+      <div class="dot" id="dot-1"></div>
+      <div class="dot" id="dot-2"></div>
+    </div>
+    <div class="setup-title" id="setup-title">สวัสดี! ชื่อของคุณคือ?</div>
+    <div class="setup-sub" id="setup-sub">ชื่อนี้จะแสดงในกระดานอันดับ</div>
+    <input class="setup-input" id="setup-inp" type="text" placeholder="เช่น สมชาย, Nike..." autocomplete="off" inputmode="text">
+    <div class="setup-hint" id="setup-hint" style="margin-bottom:auto;padding-top:8px"></div>
+    <button class="btn-primary" id="setup-next-btn">ถัดไป →</button>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="s-main" class="screen">
+  <!-- Header -->
+  <div class="app-header">
+    <div class="header-row">
+      <div>
+        <div class="greeting-small">สวัสดี 👋</div>
+        <div class="username-big" id="hdr-name">--</div>
+      </div>
+      <div class="bmi-badge" id="hdr-bmi" style="color:var(--muted);border-color:var(--muted)">BMI --</div>
+    </div>
+    <div class="header-date" id="hdr-date"></div>
+  </div>
+
+  <!-- Tab nav -->
+  <div class="tab-nav">
+    <button class="t-btn active" onclick="switchTab('home')">🏠 วันนี้</button>
+    <button class="t-btn" onclick="switchTab('board')">🏆 อันดับ</button>
+    <button class="t-btn" onclick="switchTab('more')">📊 สรุป</button>
+  </div>
+
+  <!-- HOME -->
+  <div id="tab-home" class="tab-pane active">
+    <!-- Weight Card -->
+    <div class="card">
+      <div class="card-label">⚖️ น้ำหนักวันนี้</div>
+      <div class="weight-hero">
+        <span class="weight-num" id="w-display">--</span><span class="weight-unit">กก.</span>
+      </div>
+      <!-- BMI Ring (hidden until weight set) -->
+      <div id="bmi-section" style="display:none">
+        <div class="bmi-ring-wrap">
+          <svg width="110" height="110" viewBox="0 0 110 110" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="55" cy="55" r="44" fill="none" stroke="var(--s3)" stroke-width="9"/>
+            <circle id="bmi-arc" cx="55" cy="55" r="44" fill="none" stroke="var(--accent)" stroke-width="9"
+              stroke-linecap="round" stroke-dasharray="276.46" stroke-dashoffset="276.46"
+              style="transition:stroke-dashoffset .8s ease,stroke .5s ease"/>
+          </svg>
+          <div class="bmi-center-txt">
+            <div class="bmi-center-val" id="bmi-val">--</div>
+            <div class="bmi-center-lbl">BMI</div>
+          </div>
+        </div>
+        <div class="bmi-tag" id="bmi-tag"></div>
+        <div class="bmi-delta" id="bmi-delta"></div>
+      </div>
+      <div class="w-input-row">
+        <input class="w-input" id="w-inp" type="number" step="0.1" min="20" max="300" placeholder="กรอกน้ำหนัก (กก.)">
+        <button class="w-save-btn" id="w-save-btn" onclick="saveWeight()">บันทึก ✓</button>
+      </div>
+      <div class="w-realtime" id="w-realtime"></div>
+    </div>
+
+    <!-- Steps Card -->
+    <div class="card">
+      <div class="card-label">👟 ก้าวเดินวันนี้</div>
+      <div class="steps-num" id="steps-num">0</div>
+      <div class="steps-goal" id="steps-goal">เป้าหมาย 10,000 ก้าว</div>
+      <div class="steps-bar-bg"><div class="steps-bar-fill" id="steps-bar" style="width:0%"></div></div>
+      <div class="steps-btns">
+        <button class="s-btn" onclick="addSteps(1000)">+1,000</button>
+        <button class="s-btn" onclick="addSteps(3000)">+3,000</button>
+        <button class="s-btn" onclick="addSteps(5000)">+5,000</button>
+        <button class="s-btn" onclick="addSteps(-500)" style="color:var(--muted)">-500</button>
+        <button class="s-btn" onclick="manualSteps()">✏️ กรอกเอง</button>
+        <button class="s-btn" onclick="resetSteps()" style="color:var(--red)">รีเซ็ต</button>
+      </div>
+    </div>
+
+    <!-- Stats Grid -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-ico">💧</div>
+        <div class="stat-val" id="water-val">0</div>
+        <div class="stat-lbl">แก้วน้ำ / 8</div>
+        <div class="ctrl-row">
+          <button class="c-btn" onclick="adj('water',-1)">−</button>
+          <div class="c-val" id="water-sub">0 แก้ว</div>
+          <button class="c-btn" onclick="adj('water',1)">+</button>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-ico">🔥</div>
+        <div class="stat-val" id="cal-val">0</div>
+        <div class="stat-lbl">แคลอรี่ kcal</div>
+        <div class="ctrl-row">
+          <button class="c-btn" onclick="adj('calories',-100)">−</button>
+          <div class="c-val" id="cal-sub">0 kcal</div>
+          <button class="c-btn" onclick="adj('calories',100)">+</button>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-ico">🌙</div>
+        <div class="stat-val" id="sleep-val">0</div>
+        <div class="stat-lbl">ชม. นอนหลับ</div>
+        <div class="ctrl-row">
+          <button class="c-btn" onclick="adj('sleep',-0.5)">−</button>
+          <div class="c-val" id="sleep-sub">0 ชม.</div>
+          <button class="c-btn" onclick="adj('sleep',0.5)">+</button>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-ico">💪</div>
+        <div class="stat-val" id="ex-val">0</div>
+        <div class="stat-lbl">นาที ออกกำลัง</div>
+        <div class="ctrl-row">
+          <button class="c-btn" onclick="adj('exercise',-10)">−</button>
+          <div class="c-val" id="ex-sub">0 นาที</div>
+          <button class="c-btn" onclick="adj('exercise',10)">+</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="note-txt">⚠️ ข้อมูลกระดานอันดับจะมองเห็นได้โดยทุกคนที่ใช้แอปนี้ร่วมกัน</div>
+    <div class="spacer"></div>
+  </div>
+
+  <!-- LEADERBOARD -->
+  <div id="tab-board" class="tab-pane">
+    <div class="lb-hdr">
+      <div class="lb-title">🏆 กระดานอันดับ</div>
+      <button class="lb-refresh" onclick="loadLeaderboard()">↻ รีเฟรช</button>
+    </div>
+    <div class="lb-sub">จัดอันดับตาม % น้ำหนักที่ลดได้ · อัปเดตตามเวลาจริง</div>
+    <div id="lb-list"></div>
+    <div class="note-txt">💡 อัปเดตน้ำหนักในแท็บ "วันนี้" เพื่อขยับอันดับ</div>
+    <div class="spacer"></div>
+  </div>
+
+  <!-- MORE / SUMMARY -->
+  <div id="tab-more" class="tab-pane">
+    <div class="card">
+      <div class="card-label" style="margin-bottom:8px">📈 สรุปสุขภาพวันนี้</div>
+      <div id="sum-rows"></div>
+    </div>
+    <div class="card">
+      <div class="card-label" style="margin-bottom:10px">👤 โปรไฟล์ของคุณ</div>
+      <div class="profile-info" id="profile-info"></div>
+      <button class="danger-btn" onclick="doReset()">🗑️ รีเซ็ตและเริ่มใหม่</button>
+    </div>
+    <div class="tip-card">
+      <div class="tip-title">💡 เคล็ดลับสุขภาพประจำวัน</div>
+      <div class="tip-text" id="tip-text"></div>
+    </div>
+    <div class="spacer"></div>
+  </div>
+</div>
+
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav" id="bottom-nav">
+  <div class="nav-items">
+    <button class="nav-item active" id="nav-home" onclick="switchTab('home')">
+      <div class="nav-ico">🏠</div>วันนี้
+    </button>
+    <button class="nav-item" id="nav-board" onclick="switchTab('board')">
+      <div class="nav-ico">🏆</div>อันดับ
+    </button>
+    <button class="nav-item" id="nav-more" onclick="switchTab('more')">
+      <div class="nav-ico">📊</div>สรุป
+    </button>
+  </div>
+</nav>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ===== CONSTANTS =====
+const TODAY = new Date().toISOString().split('T')[0];
+const STEP_GOAL = 10000;
+const TIPS = [
+  'ดื่มน้ำให้ครบ 8 แก้วต่อวัน ช่วยเร่งการเผาผลาญและลดความหิวได้ดี 💧',
+  'ชั่งน้ำหนักตอนเช้าหลังตื่นนอน ก่อนกินอาหาร เพื่อค่าที่แม่นยำที่สุด ⏰',
+  'นอนให้ครบ 7-8 ชั่วโมง ฮอร์โมนควบคุมความหิวจะสมดุลมากขึ้น 🌙',
+  'เดินให้ได้ 10,000 ก้าวต่อวัน เผาผลาญได้ราว 300-400 แคลอรี่ 👟',
+  'BMI 18.5-22.9 คือช่วงปกติสำหรับคนเอเชีย — เป้าหมายที่ดี! 🎯',
+  'ลดแคลอรี่ 500 kcal/วัน = ลดน้ำหนักได้ประมาณ 0.5 กก./สัปดาห์ 📉',
+  'ออกกำลังกายอย่างน้อย 30 นาที 5 วัน/สัปดาห์ ลดความเสี่ยงโรคหัวใจ 💪',
+  'กินโปรตีนในทุกมื้อ ช่วยลดความหิว รักษากล้ามเนื้อระหว่างลดน้ำหนัก 🥚',
+];
+
+const MEDALS = ['🥇', '🥈', '🥉'];
+
+// ===== STATE =====
+let profile = null;
+let log = { weight: null, steps: 0, water: 0, calories: 0, sleep: 0, exercise: 0 };
+let setupPhase = 0;
+let setupVals = ['', '', ''];
+
+const SETUP_STEPS = [
+  { title: 'สวัสดี! ชื่อของคุณคือ?', sub: 'ชื่อนี้จะแสดงในกระดานอันดับ', ph: 'เช่น สมชาย, Nike, Pear...', type: 'text', mode: 'text', hint: '' },
+  { title: 'ส่วนสูงของคุณ?', sub: 'ใช้คำนวณ BMI แบบ Real-time', ph: 'เช่น 165', type: 'number', mode: 'decimal', hint: 'หน่วย: เซนติเมตร (ซม.) เช่น 165, 170, 175' },
+  { title: 'น้ำหนักตั้งต้น?', sub: 'จุดเริ่มต้นสำหรับการแข่งขัน 🔥', ph: 'เช่น 75.5', type: 'number', mode: 'decimal', hint: 'หน่วย: กิโลกรัม (กก.) — ใช้เป็นน้ำหนักวันนี้ด้วย' },
+];
+
+// ===== UTILS =====
+function genId() { return Date.now().toString(36) + Math.random().toString(36).substr(2,6); }
+function fmt(n) { return Number(n).toLocaleString('th-TH'); }
+function calcBMI(w, h) { if (!w || !h) return null; return +((w / ((h/100)**2)).toFixed(1)); }
+function bmiColor(bmi) {
+  if (!bmi) return 'var(--muted)';
+  if (bmi < 18.5) return 'var(--blue)';
+  if (bmi < 23) return 'var(--green)';
+  if (bmi < 25) return '#86efac';
+  if (bmi < 30) return 'var(--orange)';
+  return 'var(--red)';
+}
+function bmiLabel(bmi) {
+  if (!bmi) return '--';
+  if (bmi < 18.5) return '🔵 ผอมเกินไป';
+  if (bmi < 23) return '🟢 ปกติ ✨';
+  if (bmi < 25) return '🟡 ท้วมนิดหน่อย';
+  if (bmi < 30) return '🟠 น้ำหนักเกิน';
+  return '🔴 อ้วน';
+}
+
+function showToast(msg, duration=2000) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), duration);
+}
+
+// ===== SCREENS =====
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+// ===== INIT =====
+async function init() {
+  try {
+    const r = await window.storage.get('profile');
+    if (r && r.value) {
+      profile = JSON.parse(r.value);
+      await loadLog();
+      enterMain();
+    } else { enterSetup(); }
+  } catch { enterSetup(); }
+}
+
+function enterSetup() {
+  setupPhase = 0; setupVals = ['','',''];
+  showScreen('s-setup');
+  renderSetupStep();
+}
+
+function enterMain() {
+  showScreen('s-main');
+  document.getElementById('bottom-nav').classList.add('on');
+  renderMain();
+  loadLeaderboard();
+}
+
+// ===== SETUP =====
+function renderSetupStep() {
+  const s = SETUP_STEPS[setupPhase];
+  document.getElementById('step-counter').textContent = `ขั้นตอนที่ ${setupPhase+1} จาก 3`;
+  document.getElementById('setup-title').textContent = s.title;
+  document.getElementById('setup-sub').textContent = s.sub;
+  document.getElementById('setup-hint').textContent = s.hint;
+  const inp = document.getElementById('setup-inp');
+  inp.type = s.type; inp.inputMode = s.mode; inp.placeholder = s.ph;
+  inp.value = setupVals[setupPhase];
+  for (let i=0;i<3;i++) {
+    const d = document.getElementById('dot-'+i);
+    d.classList.toggle('active', i <= setupPhase);
+  }
+  setTimeout(() => inp.focus(), 80);
+}
+
+document.getElementById('setup-inp').addEventListener('keydown', e => { if(e.key==='Enter') nextSetup(); });
+document.getElementById('setup-next-btn').addEventListener('click', nextSetup);
+
+async function nextSetup() {
+  const val = document.getElementById('setup-inp').value.trim();
+  if (!val) { flashError('setup-inp'); return; }
+  if (setupPhase === 1) {
+    const h = +val;
+    if (h < 100 || h > 250) { setHint('กรุณากรอกส่วนสูงที่ถูกต้อง (100-250 ซม.)'); return; }
+  }
+  if (setupPhase === 2) {
+    const w = +val;
+    if (w < 20 || w > 400) { setHint('กรุณากรอกน้ำหนักที่ถูกต้อง'); return; }
+    setupVals[2] = val;
+    await completeSetup();
+    return;
+  }
+  setupVals[setupPhase] = val;
+  setupPhase++;
+  renderSetupStep();
+}
+
+function flashError(id) {
+  const el = document.getElementById(id);
+  el.style.borderColor='var(--red)';
+  setTimeout(()=>el.style.borderColor='',700);
+}
+function setHint(msg) {
+  const h = document.getElementById('setup-hint');
+  const orig = h.textContent; h.textContent=msg; h.style.color='var(--red)';
+  setTimeout(()=>{ h.textContent=orig; h.style.color=''; },2200);
+}
+
+async function completeSetup() {
+  const userId = genId();
+  profile = { userId, name: setupVals[0], height: +setupVals[1], startWeight: +setupVals[2], joinDate: TODAY };
+  log = { weight: profile.startWeight, steps: 0, water: 0, calories: 0, sleep: 0, exercise: 0 };
+  await window.storage.set('profile', JSON.stringify(profile));
+  await saveLog();
+  await pushLeaderboard();
+  enterMain();
+}
+
+// ===== LOG =====
+async function loadLog() {
+  try {
+    const r = await window.storage.get(`log:${profile.userId}:${TODAY}`);
+    if (r && r.value) log = { ...log, ...JSON.parse(r.value) };
+  } catch {}
+}
+
+async function saveLog() {
+  try { await window.storage.set(`log:${profile.userId}:${TODAY}`, JSON.stringify(log)); } catch {}
+}
+
+async function pushLeaderboard() {
+  const bmi = calcBMI(log.weight, profile.height);
+  const lossKg = +(profile.startWeight - (log.weight || profile.startWeight)).toFixed(2);
+  const lossPercent = +(lossKg / profile.startWeight * 100).toFixed(2);
+  const entry = {
+    userId: profile.userId, name: profile.name,
+    startWeight: profile.startWeight, currentWeight: log.weight || profile.startWeight,
+    height: profile.height, bmi, lossKg, lossPercent,
+    steps: log.steps || 0, lastUpdate: TODAY
+  };
+  try { await window.storage.set(`lb:${profile.userId}`, JSON.stringify(entry), true); } catch {}
+}
+
+// ===== WEIGHT =====
+document.getElementById('w-inp').addEventListener('input', function() {
+  const w = parseFloat(this.value);
+  if (w >= 20 && w <= 300 && profile) {
+    const bmi = calcBMI(w, profile.height);
+    const c = bmiColor(bmi); const lbl = bmiLabel(bmi);
+    document.getElementById('w-realtime').innerHTML =
+      `BMI: <span style="color:${c};font-weight:800">${bmi} — ${lbl}</span>`;
+  } else {
+    document.getElementById('w-realtime').textContent = '';
+  }
+});
+
+async function saveWeight() {
+  const w = parseFloat(document.getElementById('w-inp').value);
+  if (!w || w < 20 || w > 300) { showToast('❌ กรุณากรอกน้ำหนักที่ถูกต้อง'); return; }
+  log.weight = w;
+  await saveLog();
+  await pushLeaderboard();
+  renderMain();
+  await loadLeaderboard();
+  document.getElementById('w-inp').value = '';
+  document.getElementById('w-realtime').textContent = '';
+  const btn = document.getElementById('w-save-btn');
+  btn.textContent = '✅ บันทึกแล้ว!'; btn.style.background='#4ade80';
+  setTimeout(() => { btn.textContent = 'บันทึก ✓'; btn.style.background=''; }, 1800);
+  showToast(`⚖️ บันทึก ${w} กก. แล้ว!`);
+}
+
+// ===== STEPS =====
+function addSteps(n) {
+  log.steps = Math.max(0, (log.steps||0)+n);
+  renderSteps(); saveLog(); pushLeaderboard();
+}
+function resetSteps() { log.steps=0; renderSteps(); saveLog(); pushLeaderboard(); }
+function manualSteps() {
+  const v = prompt('กรอกจำนวนก้าวเดิน:');
+  const n = parseInt(v);
+  if (!isNaN(n) && n >= 0) { log.steps=n; renderSteps(); saveLog(); pushLeaderboard(); }
+}
+function renderSteps() {
+  const s = log.steps||0;
+  document.getElementById('steps-num').textContent = fmt(s);
+  const pct = Math.min(100, s/STEP_GOAL*100);
+  document.getElementById('steps-bar').style.width = pct+'%';
+  document.getElementById('steps-goal').textContent = `เป้าหมาย ${fmt(STEP_GOAL)} ก้าว (${Math.round(pct)}%)`;
+}
+
+// ===== STATS =====
+const statCfg = {
+  water:    { min:0, max:20,  el:'water-val', sub:'water-sub',   fmt: v=>`${v} แก้ว` },
+  calories: { min:0, max:9999,el:'cal-val',   sub:'cal-sub',     fmt: v=>`${v} kcal` },
+  sleep:    { min:0, max:24,  el:'sleep-val', sub:'sleep-sub',   fmt: v=>`${v} ชม.`  },
+  exercise: { min:0, max:999, el:'ex-val',    sub:'ex-sub',      fmt: v=>`${v} นาที` },
+};
+function adj(key, delta) {
+  const c = statCfg[key];
+  log[key] = +Math.max(c.min, Math.min(c.max, (log[key]||0)+delta)).toFixed(1);
+  document.getElementById(c.el).textContent = log[key];
+  document.getElementById(c.sub).textContent = c.fmt(log[key]);
+  saveLog();
+}
+
+// ===== LEADERBOARD =====
+async function loadLeaderboard() {
+  try {
+    const res = await window.storage.list('lb:', true);
+    if (!res || !res.keys || !res.keys.length) { renderLB([]); return; }
+    const items = await Promise.all(res.keys.map(async k => {
+      try { const r = await window.storage.get(k, true); return r ? JSON.parse(r.value) : null; }
+      catch { return null; }
+    }));
+    const valid = items.filter(Boolean)
+      .sort((a,b) => b.lossPercent - a.lossPercent || b.steps - a.steps);
+    renderLB(valid);
+  } catch(e) { console.warn('LB:', e); renderLB([]); }
+}
+
+function renderLB(items) {
+  const el = document.getElementById('lb-list');
+  if (!items.length) {
+    el.innerHTML = `<div class="empty-state"><div class="e-ico">👥</div><div>ยังไม่มีข้อมูลในกระดาน<br>แชร์แอปนี้ให้เพื่อนเลย!</div></div>`;
+    return;
+  }
+  el.innerHTML = items.map((e, i) => {
+    const isMe = e.userId === profile?.userId;
+    const c = bmiColor(e.bmi);
+    const lbl = bmiLabel(e.bmi);
+    const lossGood = e.lossPercent >= 0;
+    const lossColor = lossGood ? 'var(--green)' : 'var(--red)';
+    const lossSign = lossGood ? '-' : '+';
+    const rank = i < 3 ? MEDALS[i] : `#${i+1}`;
+    return `
+      <div class="lb-item${isMe?' me':''}">
+        <div class="lb-rank">${rank}</div>
+        <div class="lb-info">
+          <div class="lb-name">${e.name}${isMe?' 👈':''}</div>
+          <div class="lb-sub2" style="color:${c}">${lbl}</div>
+          <div class="lb-sub2">👟 ${fmt(e.steps||0)} ก้าว · BMI ${e.bmi||'--'}</div>
+        </div>
+        <div class="lb-right">
+          <div class="lb-weight">${e.currentWeight}<span class="lb-wunit"> กก.</span></div>
+          <div class="lb-loss" style="color:${lossColor}">${lossSign}${Math.abs(e.lossPercent)}% (${Math.abs(e.lossKg)} กก.)</div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+// ===== RENDER MAIN =====
+function renderMain() {
+  if (!profile) return;
+  document.getElementById('hdr-name').textContent = profile.name;
+  document.getElementById('hdr-date').textContent =
+    new Date().toLocaleDateString('th-TH',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+
+  // Weight
+  document.getElementById('w-display').textContent = log.weight || '--';
+
+  // BMI
+  const bmi = calcBMI(log.weight, profile.height);
+  const c = bmiColor(bmi); const lbl = bmiLabel(bmi);
+  const badge = document.getElementById('hdr-bmi');
+  badge.textContent = `BMI ${bmi||'--'}`;
+  badge.style.color = c; badge.style.borderColor = c;
+
+  const bmiSec = document.getElementById('bmi-section');
+  if (bmi) {
+    bmiSec.style.display='block';
+    document.getElementById('bmi-val').textContent = bmi;
+    document.getElementById('bmi-val').style.color = c;
+    document.getElementById('bmi-tag').textContent = lbl;
+    document.getElementById('bmi-tag').style.color = c;
+    const arc = document.getElementById('bmi-arc');
+    const circ = 276.46;
+    const pct = Math.min(1, Math.max(0, (bmi-10)/30));
+    arc.style.strokeDashoffset = circ - circ*pct;
+    arc.style.stroke = c;
+    const diff = +(profile.startWeight - log.weight).toFixed(1);
+    const dSign = diff >= 0 ? '-' : '+';
+    document.getElementById('bmi-delta').textContent =
+      `จากน้ำหนักตั้งต้น: ${dSign}${Math.abs(diff)} กก.`;
+  } else { bmiSec.style.display='none'; }
+
+  // Steps & stats
+  renderSteps();
+  const sc = statCfg;
+  for (const [k,cfg] of Object.entries(sc)) {
+    document.getElementById(cfg.el).textContent = log[k]||0;
+    document.getElementById(cfg.sub).textContent = cfg.fmt(log[k]||0);
+  }
+
+  // More tab
+  renderMore();
+  // Tip
+  document.getElementById('tip-text').textContent = TIPS[new Date().getDay()%TIPS.length];
+}
+
+function renderMore() {
+  if (!profile) return;
+  const bmi = calcBMI(log.weight, profile.height);
+  const c = bmiColor(bmi); const lbl = bmiLabel(bmi);
+  const lossKg = log.weight ? (profile.startWeight-log.weight).toFixed(1) : 0;
+
+  document.getElementById('profile-info').innerHTML =
+    `ชื่อ: <strong style="color:var(--text)">${profile.name}</strong><br>
+     ส่วนสูง: <strong style="color:var(--text)">${profile.height} ซม.</strong><br>
+     น้ำหนักตั้งต้น: <strong style="color:var(--text)">${profile.startWeight} กก.</strong><br>
+     ลดไปแล้ว: <strong style="color:var(--green)">${lossKg} กก.</strong>`;
+
+  const rows = [
+    { ico:'⚖️', lbl:'น้ำหนักวันนี้', val: log.weight?`${log.weight} กก.`:'ยังไม่บันทึก', ok:!!log.weight, vc:null },
+    { ico:'🧬', lbl:'BMI', val: bmi?`${bmi} — ${lbl}`:'--', ok: bmi&&bmi<25, vc:c },
+    { ico:'👟', lbl:'ก้าวเดิน', val:`${fmt(log.steps||0)} ก้าว`, ok:(log.steps||0)>=STEP_GOAL, vc:null },
+    { ico:'💧', lbl:'น้ำดื่ม', val:`${log.water||0} / 8 แก้ว`, ok:(log.water||0)>=8, vc:null },
+    { ico:'🔥', lbl:'แคลอรี่', val:`${log.calories||0} kcal`, ok:(log.calories||0)>0, vc:null },
+    { ico:'🌙', lbl:'การนอน', val:`${log.sleep||0} ชั่วโมง`, ok:(log.sleep||0)>=7, vc:null },
+    { ico:'💪', lbl:'ออกกำลังกาย', val:`${log.exercise||0} นาที`, ok:(log.exercise||0)>=30, vc:null },
+  ];
+  document.getElementById('sum-rows').innerHTML = rows.map(r=>`
+    <div class="sum-row">
+      <div class="sum-left"><div class="sum-ico">${r.ico}</div><div class="sum-lbl">${r.lbl}</div></div>
+      <div class="sum-right">
+        <div class="sum-val" style="${r.vc?'color:'+r.vc:''}">${r.val}</div>
+        <div class="sum-check">${r.ok?'✅':'⬜'}</div>
+      </div>
+    </div>`).join('');
+}
+
+// ===== TABS =====
+function switchTab(id) {
+  document.querySelectorAll('.tab-pane').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.t-btn').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(t=>t.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  document.getElementById('nav-'+id).classList.add('active');
+  const map={home:0,board:1,more:2};
+  document.querySelectorAll('.t-btn')[map[id]]?.classList.add('active');
+  if(id==='board') loadLeaderboard();
+  if(id==='more') renderMore();
+}
+
+// ===== RESET =====
+async function doReset() {
+  if (!confirm('⚠️ รีเซ็ตข้อมูลทั้งหมด?\nโปรไฟล์จะถูกลบออกจากกระดานอันดับด้วย')) return;
+  try { await window.storage.delete(`lb:${profile.userId}`, true); } catch{}
+  try { await window.storage.delete('profile'); } catch{}
+  profile=null; log={weight:null,steps:0,water:0,calories:0,sleep:0,exercise:0};
+  setupPhase=0; setupVals=['','',''];
+  document.getElementById('bottom-nav').classList.remove('on');
+  enterSetup();
+}
+
+// ===== START =====
+init();
+</script>
+</body>
+</html>
