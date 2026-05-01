@@ -108,6 +108,15 @@ body{font-family:'Sarabun',sans-serif;background:var(--bg);color:var(--text);min
 .steps-btns{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .s-btn{padding:11px 8px;background:var(--s2);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-family:'Sarabun',sans-serif;font-size:13px;font-weight:700;cursor:pointer;text-align:center;transition:all .15s}
 .s-btn:active{background:var(--accent-dim);border-color:var(--accent)}
+/* PEDOMETER */
+.pedo-row{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.pedo-btn{flex:1;padding:13px;border:none;border-radius:var(--r);font-family:'Sarabun',sans-serif;font-size:14px;font-weight:800;cursor:pointer;transition:all .2s;letter-spacing:.3px}
+.pedo-btn.start{background:var(--accent);color:#060610}
+.pedo-btn.stop{background:rgba(255,71,87,0.15);border:1.5px solid var(--red);color:var(--red)}
+.pedo-status{font-size:11px;font-weight:700;padding:5px 12px;border-radius:50px;white-space:nowrap}
+.pedo-status.on{background:rgba(74,222,128,0.15);color:var(--green);border:1px solid rgba(74,222,128,0.3)}
+.pedo-status.off{background:var(--s2);color:var(--muted);border:1px solid var(--border)}
+.pedo-note{font-size:11px;color:var(--muted);margin-bottom:10px;line-height:1.5;padding:8px 12px;background:var(--s2);border-radius:8px}
 
 /* STATS GRID */
 .stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
@@ -267,15 +276,20 @@ body{font-family:'Sarabun',sans-serif;background:var(--bg);color:var(--text);min
 
     <div class="card">
       <div class="card-label">👟 ก้าวเดินวันนี้</div>
+      <div class="pedo-row">
+        <button class="pedo-btn start" id="pedo-btn" onclick="togglePedometer()">🚶 เริ่มนับก้าว</button>
+        <div class="pedo-status off" id="pedo-status">⏹ หยุด</div>
+      </div>
+      <div class="pedo-note" id="pedo-note">กด "เริ่มนับก้าว" แล้วพกมือถือเดินได้เลยครับ · ต้องเปิดหน้าจอค้างไว้</div>
       <div class="steps-num" id="steps-num">0</div>
       <div class="steps-goal" id="steps-goal">เป้าหมาย 10,000 ก้าว</div>
       <div class="steps-bar-bg"><div class="steps-bar-fill" id="steps-bar" style="width:0%"></div></div>
       <div class="steps-btns">
-        <button class="s-btn" onclick="addSteps(1000)">+1,000</button>
-        <button class="s-btn" onclick="addSteps(3000)">+3,000</button>
-        <button class="s-btn" onclick="addSteps(5000)">+5,000</button>
-        <button class="s-btn" onclick="addSteps(-500)" style="color:var(--muted)">-500</button>
+        <button class="s-btn" onclick="addSteps(100)">+100</button>
+        <button class="s-btn" onclick="addSteps(500)">+500</button>
         <button class="s-btn" onclick="manualSteps()">✏️ กรอกเอง</button>
+        <button class="s-btn" onclick="addSteps(-100)" style="color:var(--muted)">-100</button>
+        <button class="s-btn" onclick="addSteps(-500)" style="color:var(--muted)">-500</button>
         <button class="s-btn" onclick="resetSteps()" style="color:var(--red)">รีเซ็ต</button>
       </div>
     </div>
@@ -444,38 +458,45 @@ function showScreen(id){
   document.getElementById(id).classList.add('active');
 }
 
+
 // ===== INIT =====
+function describeError(e){
+  if(!e) return 'เกิดข้อผิดพลาด';
+  if(e.message==='timeout') return 'Firebase ตอบช้า — ลองรีเฟรช';
+  if(e.code==='permission-denied') return 'Firestore Rules บล็อก — ต้องเปิด Test Mode';
+  if(e.code==='unavailable') return 'ไม่มีอินเทอร์เน็ต';
+  return e.message || e.code || 'ลองรีเฟรชใหม่';
+}
+function setLoadMsg(msg){ document.getElementById('load-msg').textContent = msg; }
+
 async function init(){
   setLoadMsg('กำลังเชื่อมต่อ Firebase...');
+  await new Promise(r => setTimeout(r, 600));
+  if(!uid){
+    enterSetup();
+    return;
+  }
+  setLoadMsg('กำลังโหลดโปรไฟล์...');
   try {
-    // Test Firestore connection
-    await db.collection('_ping').doc('test').set({ t: Date.now() }).catch(e => { throw e; });
-    setLoadMsg('กำลังโหลดโปรไฟล์...');
-
-    if(uid){
-      const doc = await db.collection('profiles').doc(uid).get();
-      if(doc.exists){
-        profile = doc.data();
-        await loadLog();
-        enterMain();
-      } else {
-        localStorage.removeItem('fitbattle_uid');
-        uid = null;
-        enterSetup();
-      }
+    const doc = await Promise.race([
+      db.collection('profiles').doc(uid).get(),
+      new Promise((_,rej) => setTimeout(()=>rej(new Error('timeout')), 8000))
+    ]);
+    if(doc.exists){
+      profile = doc.data();
+      await loadLog();
+      enterMain();
     } else {
+      localStorage.removeItem('fitbattle_uid');
+      uid = null;
       enterSetup();
     }
   } catch(e){
-    console.error('Firebase error:', e);
-    if(e.code==='permission-denied' || e.code==='unavailable' || String(e).includes('firestore')){
-      showScreen('s-error');
-    } else {
-      showScreen('s-error');
-    }
+    console.error('Init error:', e);
+    setLoadMsg('⚠️ ' + describeError(e) + ' — ไปหน้า Setup...');
+    setTimeout(() => enterSetup(), 2500);
   }
 }
-function setLoadMsg(msg){ document.getElementById('load-msg').textContent = msg; }
 
 // ===== SETUP =====
 function enterSetup(){
@@ -517,14 +538,28 @@ function setHint(msg){ const h=document.getElementById('setup-hint'); const o=h.
 async function completeSetup(){
   const btn=document.getElementById('setup-next-btn');
   btn.disabled=true; btn.textContent='กำลังบันทึก...';
-  uid=genId();
-  localStorage.setItem('fitbattle_uid',uid);
-  profile={ userId:uid, name:setupVals[0], height:+setupVals[1], startWeight:+setupVals[2], joinDate:TODAY };
-  log={ weight:profile.startWeight, steps:0, water:0, calories:0, sleep:0, exercise:0 };
-  await db.collection('profiles').doc(uid).set(profile);
-  await saveLog();
-  await pushLeaderboard();
-  enterMain();
+  try {
+    uid=genId();
+    localStorage.setItem('fitbattle_uid',uid);
+    profile={ userId:uid, name:setupVals[0], height:+setupVals[1], startWeight:+setupVals[2], joinDate:TODAY };
+    log={ weight:profile.startWeight, steps:0, water:0, calories:0, sleep:0, exercise:0 };
+    await db.collection('profiles').doc(uid).set(profile);
+    await saveLog();
+    await pushLeaderboard();
+    enterMain();
+  } catch(e) {
+    console.error('completeSetup error:', e);
+    btn.disabled=false; btn.textContent='ถัดไป →';
+    // Show error clearly to user
+    const hint=document.getElementById('setup-hint');
+    if(e.code==='permission-denied'){
+      hint.textContent='❌ Firebase: ต้องเปิด Firestore ใน Test Mode ก่อนนะครับ';
+    } else {
+      hint.textContent='❌ บันทึกไม่ได้: ' + (e.message||e.code||'ลองใหม่อีกครั้ง');
+    }
+    hint.style.color='var(--red)';
+    setTimeout(()=>{ hint.style.color=''; hint.textContent=SETUP_STEPS[setupPhase].hint; },4000);
+  }
 }
 
 // ===== LOG =====
@@ -627,11 +662,106 @@ async function saveWeight(){
   showToast(`⚖️ บันทึก ${w} กก. แล้ว!`);
 }
 
+// ===== PEDOMETER =====
+let pedometerActive = false;
+let lastMag = 0;
+let stepThreshold = 1.2;   // sensitivity (lower = more sensitive)
+let minStepInterval = 300; // ms between steps
+let lastStepTime = 0;
+let pedometerBuffer = [];
+let motionHandler = null;
+
+async function togglePedometer(){
+  if(pedometerActive){ stopPedometer(); return; }
+
+  // iOS requires explicit permission
+  if(typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function'){
+    try {
+      const perm = await DeviceMotionEvent.requestPermission();
+      if(perm !== 'granted'){
+        showToast('❌ ไม่ได้รับอนุญาตเซ็นเซอร์');
+        return;
+      }
+    } catch(e){
+      showToast('❌ iOS: ต้องกดอนุญาตเซ็นเซอร์');
+      return;
+    }
+  } else if(typeof DeviceMotionEvent === 'undefined'){
+    showToast('❌ มือถือนี้ไม่รองรับเซ็นเซอร์');
+    return;
+  }
+  startPedometer();
+}
+
+function startPedometer(){
+  pedometerActive = true;
+  pedometerBuffer = [];
+  lastMag = 0; lastStepTime = 0;
+
+  motionHandler = function(e){
+    const acc = e.accelerationIncludingGravity || e.acceleration;
+    if(!acc) return;
+    const x = acc.x||0, y = acc.y||0, z = acc.z||0;
+    const mag = Math.sqrt(x*x + y*y + z*z);
+
+    // Rolling average to reduce noise
+    pedometerBuffer.push(mag);
+    if(pedometerBuffer.length > 5) pedometerBuffer.shift();
+    const avg = pedometerBuffer.reduce((a,b)=>a+b,0)/pedometerBuffer.length;
+
+    const now = Date.now();
+    const delta = Math.abs(avg - lastMag);
+
+    // Detect step: significant change + time gap
+    if(delta > stepThreshold && (now - lastStepTime) > minStepInterval){
+      lastStepTime = now;
+      log.steps = (log.steps||0) + 1;
+      renderSteps();
+      // Save to Firebase every 20 steps to reduce writes
+      if(log.steps % 20 === 0){ saveLog(); pushLeaderboard(); }
+    }
+    lastMag = avg;
+  };
+
+  window.addEventListener('devicemotion', motionHandler, true);
+
+  // Update UI
+  document.getElementById('pedo-btn').className='pedo-btn stop';
+  document.getElementById('pedo-btn').textContent='⏹ หยุดนับก้าว';
+  document.getElementById('pedo-status').className='pedo-status on';
+  document.getElementById('pedo-status').textContent='🟢 กำลังนับ';
+  document.getElementById('pedo-note').textContent='🚶 กำลังนับก้าว... พกมือถือไว้ในมือหรือกระเป๋าได้เลยครับ';
+  document.getElementById('pedo-note').style.color='var(--green)';
+  showToast('🚶 เริ่มนับก้าวอัตโนมัติแล้ว!');
+}
+
+function stopPedometer(){
+  pedometerActive = false;
+  if(motionHandler){
+    window.removeEventListener('devicemotion', motionHandler, true);
+    motionHandler = null;
+  }
+  // Final save
+  saveLog(); pushLeaderboard();
+
+  document.getElementById('pedo-btn').className='pedo-btn start';
+  document.getElementById('pedo-btn').textContent='🚶 เริ่มนับก้าว';
+  document.getElementById('pedo-status').className='pedo-status off';
+  document.getElementById('pedo-status').textContent='⏹ หยุด';
+  document.getElementById('pedo-note').textContent='กด "เริ่มนับก้าว" แล้วพกมือถือเดินได้เลยครับ · ต้องเปิดหน้าจอค้างไว้';
+  document.getElementById('pedo-note').style.color='';
+  showToast(`⏹ หยุดนับ — รวม ${fmt(log.steps||0)} ก้าว`);
+}
+
 // ===== STEPS =====
 function addSteps(n){ log.steps=Math.max(0,(log.steps||0)+n); renderSteps(); saveLog(); pushLeaderboard(); }
-function resetSteps(){ log.steps=0; renderSteps(); saveLog(); pushLeaderboard(); }
+function resetSteps(){
+  if(!confirm('รีเซ็ตก้าวเดินเป็น 0?')) return;
+  if(pedometerActive) stopPedometer();
+  log.steps=0; renderSteps(); saveLog(); pushLeaderboard();
+}
 function manualSteps(){
-  const v=prompt('กรอกจำนวนก้าวเดิน:');
+  const v=prompt('กรอกจำนวนก้าวเดินที่ต้องการตั้ง:');
   const n=parseInt(v);
   if(!isNaN(n)&&n>=0){ log.steps=n; renderSteps(); saveLog(); pushLeaderboard(); }
 }
